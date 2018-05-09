@@ -1,0 +1,20 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "A VPC with three subnets",
+  "Resources" : {
+    "MyVPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : "10.2.0.0/16",
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          {
+              "Key" : "Name",
+              "Value" : "MyVPC"
+          }
+        ]
+      }
+    }
+  }
+}

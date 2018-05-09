@@ -1,0 +1,24 @@
+{
+   "AWSTemplateFormatVersion" : "2010-09-09",
+   "Description" : "Ec2 block device mapping",
+   "Resources" : {
+      "MyEC2Instance" : {
+         "Type" : "AWS::EC2::Instance",
+         "Properties" : {
+            "ImageId" : "ami-b46f48db",
+            "KeyName" : "mykey",
+            "InstanceType" : "t2.micro",
+            "BlockDeviceMappings" : [
+               {
+                  "DeviceName" : "/dev/sdk",
+                  "Ebs" : {
+                     "VolumeType" : "gp2",
+                     "DeleteOnTermination" : "true",
+                     "VolumeSize" : "8"
+                  }
+               }
+            ]
+         }
+      }
+   }
+}

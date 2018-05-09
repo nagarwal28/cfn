@@ -1,0 +1,85 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "EC2 with attached security group,IamInstanceProfile,volume and keypair",
+  "Parameters" : {
+    "KeyName" : {
+      "Description" : "EC2 Instance SSH Key",
+      "Type" : "AWS::EC2::KeyPair::KeyName"
+    }
+  },
+    "Resources": {
+        "MyEC2Instance" : {
+           "Type" : "AWS::EC2::Instance",
+           "Properties" : {
+              "ImageId" : "ami-b46f48db",
+              "KeyName" : {
+                "Ref" : "KeyName"
+              },
+              "InstanceType" : "t2.micro",
+              "IamInstanceProfile" : {
+                "Ref" : "S3BucketReadOnlyInstanceProfile"
+              },
+              "Volumes" : [{
+                  "VolumeId" : { "Ref" : "EC2Volume" },
+                  "Device" : "/dev/sdc"
+              }],
+              "SecurityGroups": [
+                  {
+                      "Ref": "InstanceSecurityGroup"
+                  }
+              ]
+            }
+          },
+        "EC2Volume" : {
+           "Type" : "AWS::EC2::Volume",
+           "Properties" : {
+             "Size" : "8",
+             "VolumeType" : "gp2"
+           }
+        },
+        "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Enable SSH access via port 22",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EC2S3IAMRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+                   "Version" : "2012-10-17",
+                   "Statement": [ {
+                      "Effect": "Allow",
+                      "Principal": {
+                         "Service": [ "ec2.amazonaws.com" ]
+                      },
+                      "Action": [ "sts:AssumeRole" ]
+                   } ]
+            },
+            "ManagedPolicyArns": ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"],
+            "Path": "/",
+            "RoleName": "EC2S3"
+          }
+        },
+        "S3BucketReadOnlyInstanceProfile" : {
+          "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+              "Path" : "/",
+              "Roles" : [
+                {
+                  "Ref" : "EC2S3IAMRole"
+                }
+              ],
+            "InstanceProfileName" : "EC2S3BucketReadOnlyInstanceProfile"
+            }
+          }
+        }
+}
