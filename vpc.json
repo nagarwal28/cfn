@@ -15,6 +15,55 @@
           }
         ]
       }
+    },
+    "MyPublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "MyVPC" },
+        "CidrBlock" : "10.2.1.0/24",
+        "AvailabilityZone" : "ap-south-1a",
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [
+          {
+              "Key" : "Name",
+              "Value" : "MyPublicSubnet"
+          }
+        ]
+      }
+    },
+    "MyPublicRT" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "MyVPC" },
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "MyPublicRT"
+          }
+        ]
+      }
+    },
+    "MyPublicIGW" :{
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+      "Tags" : [
+        {
+        "Key" : "Name",
+        "Value" : "MyPublicIGW"
+      }
+    ]
+   }
+    },
+    "MyPublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "MyPublicRT" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "MyPublicIGW" },
+
+    "NetworkInterfaceId" : String,
+
+      }
     }
   }
 }
