@@ -8,15 +8,10 @@
             "ImageId" : "ami-b46f48db",
             "KeyName" : "mykey",
             "InstanceType" : "t2.micro",
-            "BlockDeviceMappings" : [
-               {
-                  "DeviceName" : "/dev/sdk",
-                  "Ebs" : {
-                     "VolumeType" : "gp2",
-                     "DeleteOnTermination" : "true",
-                     "VolumeSize" : "8"
-                  }
-               }
+            "SecurityGroups": [
+                {
+                    "Fn::ImportValue" : "Security-Group-Name"
+                }
             ]
          }
       }
