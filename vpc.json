@@ -18,6 +18,7 @@
     },
     "MyPublicSubnet" : {
       "Type" : "AWS::EC2::Subnet",
+      "DependsOn" : "MyPublicRT",
       "Properties" : {
         "VpcId" : { "Ref" : "MyVPC" },
         "CidrBlock" : "10.2.1.0/24",
@@ -29,6 +30,25 @@
               "Value" : "MyPublicSubnet"
           }
         ]
+      }
+    },
+    "MyPublicIGW" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "MyPublicIGW"
+          }
+        ]
+      }
+    },
+    "MyPublicIGWAttachment" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
+      "DependsOn" : "MyPublicIGW",
+      "Properties" : {
+        "InternetGatewayId" : { "Ref" : "MyPublicIGW" },
+        "VpcId" : { "Ref" : "MyVPC" }
       }
     },
     "MyPublicRT" : {
@@ -43,27 +63,34 @@
         ]
       }
     },
-    "MyPublicIGW" :{
-      "Type" : "AWS::EC2::InternetGateway",
-      "Properties" : {
-      "Tags" : [
-        {
-        "Key" : "Name",
-        "Value" : "MyPublicIGW"
-      }
-    ]
-   }
-    },
     "MyPublicRoute" : {
       "Type" : "AWS::EC2::Route",
+      "DependsOn" : "MyPublicIGW",
       "Properties" : {
         "RouteTableId" : { "Ref" : "MyPublicRT" },
         "DestinationCidrBlock" : "0.0.0.0/0",
-        "GatewayId" : { "Ref" : "MyPublicIGW" },
-
-    "NetworkInterfaceId" : String,
-
+        "GatewayId" : { "Ref" : "MyPublicIGW" }
       }
+    },
+    "MyPublicRTAssociation": {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn" : [ "MyPublicRT", "MyPublicSubnet"],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "MyPublicRT" },
+        "SubnetId" : { "Ref" : "MyPublicSubnet" }
+      }
+    }
+  },
+  "MyPublicNACL" : {
+    "Type" : "AWS::EC2::NetworkAcl",
+    "Properties" : {
+      "VpcId" : { "Ref" : "MyVPC" }
+    }
+  },
+  "MyPublicNACLEntry" : {
+    "Type" : "AWS::EC2::NetworkAclEntry",
+    "Properties" : {
+      ""
     }
   }
 }
