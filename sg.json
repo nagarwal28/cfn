@@ -5,6 +5,7 @@
 		"InstanceSecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
+				"GroupName" : "mysecuritygroup",
 				"GroupDescription": "Enable SSH access via port 22",
 				"SecurityGroupIngress": [{
 					"IpProtocol": "tcp",
@@ -13,6 +14,13 @@
 					"CidrIp": "0.0.0.0/0"
 				}]
 			}
+		}
+	},
+	"Outputs" : {
+		"SgName" : {
+			"Description" : "Security Group Name",
+			"Value" : { "Ref" : "InstanceSecurityGroup" },
+			"Export" : { "Name" : "Security-Group-Name"}
 		}
 	}
 }
