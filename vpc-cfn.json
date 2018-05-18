@@ -1,11 +1,56 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description" : "A VPC with three subnets(Public,Private,Data) in AWS Mumbai region(ap-south-1)",
+  "Description" : "A VPC with three subnets(Public,Private,Data)",
+  "Parameters" : {
+    "ParamVPCCIDR" : {
+      "Type" : "String",
+      "AllowedPattern" : "^(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])\\.(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])",
+      "ConstraintDescription" : "CIDR block parameter must be in the form x.x.x.x/16-28",
+      "Default" : "10.2.0.0/16",
+      "Description" : "VPC CIDR selection"
+    },
+    "ParamPublicCIDR" : {
+      "Type" : "String",
+      "AllowedPattern": "^(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])\\.(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])",
+      "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28 and in range of VPC",
+      "Default" : "10.2.1.0/24",
+      "Description" : "Public Subnet CIDR selection"
+    },
+    "ParamPublicAZ" : {
+      "Type" : "AWS::EC2::AvailabilityZone::Name",
+      "AllowedValues" : { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
+      "Description" : "Public Subnet AZ selection"
+    },
+    "ParamPrivateCIDR" : {
+      "Type" : "String",
+      "AllowedPattern": "^(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])\\.(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])",
+      "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28 and in range of VPC",
+      "Default" : "10.2.2.0/24",
+      "Description" : "Private Subnet CIDR selection"
+    },
+    "ParamPrivateAZ" : {
+      "Type" : "AWS::EC2::AvailabilityZone::Name",
+      "AllowedValues" : { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
+      "Description" : "Private Subnet AZ selection"
+    },
+    "ParamDataCIDR" : {
+      "Type" : "String",
+      "AllowedPattern": "^(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])\\.(\\d|[01]?\\d\\d|2[0-4]\\d|25[0-5])",
+      "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28 and in range of VPC",
+      "Default" : "10.2.3.0/24",
+      "Description" : "Data Subnet CIDR selection"
+    },
+    "ParamDataAZ" : {
+      "Type" : "AWS::EC2::AvailabilityZone::Name",
+      "AllowedValues" : { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
+      "Description" : "Data Subnet AZ selection"
+    }
+  },
   "Resources" : {
     "MyVPC" : {
       "Type" : "AWS::EC2::VPC",
       "Properties" : {
-        "CidrBlock" : "10.2.0.0/16",
+        "CidrBlock" : { "Ref" : "ParamVPCCIDR" },
         "EnableDnsSupport" : "true",
         "EnableDnsHostnames" : "true",
         "Tags" : [
@@ -21,8 +66,8 @@
       "DependsOn" : [ "MyPublicRT", "MyVPC" ],
       "Properties" : {
         "VpcId" : { "Ref" : "MyVPC" },
-        "CidrBlock" : "10.2.1.0/24",
-        "AvailabilityZone" : "ap-south-1a",
+        "CidrBlock" : { "Ref" : "ParamPublicCIDR" },
+        "AvailabilityZone" : { "Ref" : "ParamPublicAZ" },
         "MapPublicIpOnLaunch" : "true",
         "Tags" : [
           {
@@ -130,8 +175,8 @@
       "DependsOn" : [ "MyPrivateRT", "MyVPC" ],
       "Properties" : {
         "VpcId" : { "Ref" : "MyVPC" },
-        "CidrBlock" : "10.2.2.0/24",
-        "AvailabilityZone" : "ap-south-1b",
+        "CidrBlock" : { "Ref" : "ParamPrivateCIDR" },
+        "AvailabilityZone" : { "Ref" : "ParamPrivateAZ" },
         "Tags" : [
           {
               "Key" : "Name",
@@ -235,8 +280,8 @@
       "DependsOn" : [ "MyDataRT", "MyVPC" ],
       "Properties" : {
         "VpcId" : { "Ref" : "MyVPC" },
-        "CidrBlock" : "10.2.3.0/24",
-        "AvailabilityZone" : "ap-south-1b",
+        "CidrBlock" : { "Ref" : "ParamDataCIDR" },
+        "AvailabilityZone" : { "Ref" : "ParamDataAZ" },
         "Tags" : [
           {
               "Key" : "Name",
