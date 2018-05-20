@@ -1,0 +1,173 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "An ecs cluster",
+  "Resources" : {
+    "DotnetECSCluster" :{
+      "Type" : "AWS::ECS::Cluster",
+      "Properties" :{
+        "ClusterName" : "dotnet-cluster"
+      }
+    },
+    "EcsInstance" : {
+      "Type" : "AWS::EC2::Instance",
+      "DependsOn": "DotnetECSCluster",
+      "Properties" : {
+        "ImageId" : "ami-72edc81d",
+        "KeyName" : "ecs",
+        "InstanceType" : "t2.micro",
+        "IamInstanceProfile" : {
+          "Ref" : "EcsIamInstanceProfile"
+        },
+        "SecurityGroups": [{
+          "Ref": "EcsInstanceSg"
+          }],
+          "UserData":{
+            "Fn::Base64":{
+              "Fn::Join":[
+                "",
+                [
+                  "#!/bin/bash -xe\n",
+                  "echo ECS_CLUSTER=",
+                  {
+                    "Ref":"DotnetECSCluster"
+                  },
+                  " >> /etc/ecs/ecs.config\n"
+                ]
+              ]
+            }
+          },
+          "Tags" : [
+            {
+              "Key" : "Name",
+              "Value" : "ECSClusterInstance"
+            }
+          ]
+        }
+      },
+      "ECSService" :{
+        "Type" : "AWS::ECS::Service",
+        "DependsOn" : "ECSTaskDefinition",
+        "Properties" : {
+          "LaunchType" : "EC2",
+          "ServiceName" : "webapi-core",
+          "Cluster": { "Ref": "DotnetECSCluster" },
+          "DesiredCount": 1,
+          "TaskDefinition" : { "Ref": "ECSTaskDefinition" },
+          "DeploymentConfiguration" : {
+            "MaximumPercent" : 200,
+            "MinimumHealthyPercent" : 50
+          },
+          "PlacementStrategies" : [{
+            "Field": "memory",
+            "Type": "binpack"
+          }]
+        }
+      },
+      "ECSTaskDefinition" : {
+        "Type" : "AWS::ECS::TaskDefinition",
+        "DependsOn" : "EcsInstance",
+        "Properties" : {
+          "Family": "dotnet-webcoreapi",
+          "ContainerDefinitions": [
+            {
+              "Name": "dotnet-webapi-core",
+              "MemoryReservation": 500,
+              "Image": "nishantk0111/dotnetwebapi",
+              "PortMappings": [{
+                "HostPort": 0,
+                "Protocol": "tcp",
+                "ContainerPort": 5000
+                }]
+              }
+            ],
+            "RequiresCompatibilities": [
+              "EC2"
+            ],
+            "NetworkMode": "bridge"
+          }
+        },
+        "EcsInstanceSg": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupName": "EcsSg",
+            "GroupDescription": "Enable ephemeral ports for container",
+            "SecurityGroupIngress": [{
+              "IpProtocol": "tcp",
+              "FromPort": "22",
+              "ToPort": "22",
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "32768",
+              "ToPort": "65535",
+              "CidrIp": "0.0.0.0/0"
+              }],
+              "Tags" : [
+                {
+                  "Key" : "Name",
+                  "Value" : "EcsInstanceSg"
+                }
+              ]
+            }
+          },
+          "EcsInstanceRole": {
+            "Type":"AWS::IAM::Role",
+            "Properties": {
+              "RoleName": "EcsInstanceRole",
+              "AssumeRolePolicyDocument": {
+                "Statement": [
+                  {
+                    "Effect":"Allow",
+                    "Principal": {
+                      "Service": [
+                        "ec2.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Path":"/",
+              "Policies": [
+                {
+                  "PolicyName":"ecs-service",
+                  "PolicyDocument": {
+                    "Statement": [
+                      {
+                        "Effect":"Allow",
+                        "Action": [
+                          "ecs:CreateCluster",
+                          "ecs:DeregisterContainerInstance",
+                          "ecs:DiscoverPollEndpoint",
+                          "ecs:Poll",
+                          "ecs:RegisterContainerInstance",
+                          "ecs:StartTelemetrySession",
+                          "ecs:Submit*",
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource":"*"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "EcsIamInstanceProfile" : {
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+              "Path" : "/",
+              "Roles" : [
+                {
+                  "Ref" : "EcsInstanceRole"
+                }
+              ],
+              "InstanceProfileName" : "EcsIamInstanceProfile"
+            }
+          }
+        }
+      }

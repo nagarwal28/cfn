@@ -1,0 +1,28 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "An Ecs task defination",
+  "Resources" : {
+    "ECSTaskDefination" : {
+      "Type" : "AWS::ECS::TaskDefinition",
+      "Properties" : {
+        "Family": "dotnet-webcoreapi",
+        "ContainerDefinitions": [
+          {
+            "Name": "dotnet-webapi-core",
+            "MemoryReservation": 500,
+            "Image": "nishantk0111/dotnetwebapi",
+            "PortMappings": [{
+                "HostPort": 0,
+                "Protocol": "tcp",
+                "ContainerPort": 5000
+            }]
+          }
+        ],
+        "RequiresCompatibilities": [
+          "EC2"
+        ],
+        "NetworkMode": "bridge"
+      }
+    }
+  }
+}

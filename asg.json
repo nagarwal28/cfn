@@ -1,0 +1,98 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AutoScaling group",
+  "Resources": {
+    "ECSLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "AssociatePublicIpAddress": "false",
+      "BlockDeviceMappings": [{
+            "DeviceName": "/dev/sdk",
+            "Ebs": {
+              "VolumeSize": "22",
+              "VolumeType": "gp2"
+            }
+      },
+      {
+            "DeviceName": "/dev/sdk",
+            "VirtualName": "ephemeral0"
+      }],
+      "IamInstanceProfile": { "Ref": "EcsIamInstanceProfile" },
+      "ImageId": "ami-72edc81d",
+      "InstanceType": "t2.micro",
+      "KeyName": "ecs",
+      "SecurityGroups": { "Ref": "EcsInstanceSg" }
+  },
+  "EcsInstanceSg": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+      "GroupName": "EcsInstanceSg",
+      "GroupDescription": "Enable ephemeral ports for container",
+      "SecurityGroupIngress": [{
+        "IpProtocol": "tcp",
+        "FromPort": "49153",
+        "ToPort": "65535",
+        "CidrIp": "0.0.0.0/0"
+      }]
+    }
+  },
+  "EcsInstanceRole": {
+    "Type":"AWS::IAM::Role",
+    "Properties": {
+      "RoleName": "EcsInstanceRole",
+      "AssumeRolePolicyDocument": {
+        "Statement": [
+          {
+            "Effect":"Allow",
+            "Principal": {
+              "Service": [
+                "ec2.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }
+        ]
+      },
+      "Path":"/",
+      "Policies": [
+        {
+          "PolicyName":"ecs-service",
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Effect":"Allow",
+                "Action": [
+                  "ecs:CreateCluster",
+                  "ecs:DeregisterContainerInstance",
+                  "ecs:DiscoverPollEndpoint",
+                  "ecs:Poll",
+                  "ecs:RegisterContainerInstance",
+                  "ecs:StartTelemetrySession",
+                  "ecs:Submit*",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource":"*"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "EcsIamInstanceProfile" : {
+    "Type" : "AWS::IAM::InstanceProfile",
+      "Properties" : {
+        "Path" : "/",
+        "Roles" : [
+          {
+            "Ref" : "EcsInstanceRole"
+          }
+        ],
+      "InstanceProfileName" : "EcsIamInstanceProfile"
+      }
+    }
+
+}
+}
