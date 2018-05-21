@@ -1,0 +1,94 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "An ecs cluster",
+  "Resources" : {
+    "EcsAlb" : {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type" : "application",
+        "Name" : "ECS-ALB",
+        "SecurityGroups" : [{ "Ref" : "EcsAlbSg" }],
+        "Subnets" : [ "subnet-28eebb41","subnet-e6ec63ab" ],
+        "IpAddressType" : "ipv4",
+        "Tags" : [{
+          "Key" : "Name",
+          "Value" : "Ecs-Alb"
+        }]
+      }
+    },
+    "EcsAlbListener" : {
+       "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+       "Properties" : {
+         "DefaultActions" : [{
+           "TargetGroupArn" : { "Ref" : "EcsAlbTg"},
+           "Type" : "forward"
+         }],
+         "LoadBalancerArn" : { "Ref" : "EcsAlb"},
+         "Port" : 80,
+         "Protocol" : "HTTP"
+       }
+    },
+    "ECSALBListenerRule" : {
+      "Type":"AWS::ElasticLoadBalancingV2::ListenerRule",
+      "DependsOn":"EcsAlbListener",
+      "Properties" : {
+        "Actions":[{
+          "Type":"forward",
+          "TargetGroupArn":{ "Ref":"EcsAlbTg"}
+        }],
+        "Conditions" :[{
+          "Field" : "path-pattern",
+          "Values" : ["/core"]
+        }],
+        "ListenerArn":{ "Ref":"EcsAlbListener"},
+        "Priority":1
+      }
+    },
+    "EcsAlbTg" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties" : {
+        "Name" : "EcsAlb-Tg",
+        "HealthCheckIntervalSeconds":10,
+        "HealthCheckPath":"/core",
+        "HealthCheckProtocol":"HTTP",
+        "HealthCheckTimeoutSeconds":5,
+        "HealthyThresholdCount":3,
+        "UnhealthyThresholdCount":2,
+        "Matcher" : {
+          "HttpCode" : "200"
+        },
+        "Port" : 80,
+        "TargetType" : "instance",
+        "VpcId" : "vpc-b6c28bdf",
+        "Protocol" : "HTTP",
+        "Tags" : [{
+          "Key" : "Name",
+          "Value" : "EcsAlb-Tg"
+        }]
+      }
+    },
+    "EcsAlbSg": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "security group for ALB",
+        "VpcId" : "vpc-b6c28bdf",
+        "SecurityGroupIngress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "80",
+          "ToPort": "80",
+          "CidrIp": "0.0.0.0/0"
+        }],
+        "SecurityGroupEgress" : [{
+          "IpProtocol" : "tcp",
+          "FromPort" : "0",
+          "ToPort" : "65535",
+          "CidrIp" : "0.0.0.0/0"
+        }],
+        "Tags" : [{
+          "Key" : "Name",
+          "Value" : "EcsAlb-Sg"
+        }]
+      }
+    }
+  }
+}
