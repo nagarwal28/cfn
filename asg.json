@@ -43,7 +43,8 @@
           "FromPort": "32768",
           "ToPort": "61000",
           "CidrIp": "0.0.0.0/0"
-        }]
+        }],
+        "VpcId" : "vpc-b6c28bdf"
       }
     },
     "EcsInstanceRole": {
