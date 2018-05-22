@@ -44,15 +44,15 @@
           ]
         }
       },
-      "ECSService" :{
+      "ECSCoreService" :{
         "Type" : "AWS::ECS::Service",
-        "DependsOn" : ["ECSTaskDefinition","EcsAlb"],
+        "DependsOn" : ["ECSCoreTaskDefinition","EcsAlb"],
         "Properties" : {
           "LaunchType" : "EC2",
           "ServiceName" : "webapi-core",
           "Cluster": { "Ref": "DotnetECSCluster" },
           "DesiredCount": 1,
-          "TaskDefinition" : { "Ref": "ECSTaskDefinition" },
+          "TaskDefinition" : { "Ref": "ECSCoreTaskDefinition" },
           "DeploymentConfiguration" : {
             "MaximumPercent" : 200,
             "MinimumHealthyPercent" : 50
@@ -65,11 +65,11 @@
           "LoadBalancers" : [{
             "ContainerName" : "dotnet-webapi-core",
             "ContainerPort" : 5000,
-            "TargetGroupArn" : { "Ref" : "EcsAlbTg"}
+            "TargetGroupArn" : { "Ref" : "EcsAlbCoreTg"}
           }]
         }
       },
-      "ECSTaskDefinition" : {
+      "ECSCoreTaskDefinition" : {
         "Type" : "AWS::ECS::TaskDefinition",
         "DependsOn" : "EcsInstance",
         "Properties" : {
@@ -77,8 +77,56 @@
           "ContainerDefinitions": [
             {
               "Name": "dotnet-webapi-core",
-              "MemoryReservation": 500,
+              "MemoryReservation": 200,
               "Image": "nishantk0111/dotnetwebapi",
+              "PortMappings": [{
+                "HostPort": 0,
+                "Protocol": "tcp",
+                "ContainerPort": 5000
+                }]
+              }
+            ],
+            "RequiresCompatibilities": [
+              "EC2"
+            ],
+            "NetworkMode": "bridge"
+          }
+        },
+      "ECSApiService" :{
+        "Type" : "AWS::ECS::Service",
+        "DependsOn" : ["ECSApiTaskDefinition","EcsAlb"],
+        "Properties" : {
+          "LaunchType" : "EC2",
+          "ServiceName" : "webapi-api",
+          "Cluster": { "Ref": "DotnetECSCluster" },
+          "DesiredCount": 1,
+          "TaskDefinition" : { "Ref": "ECSApiTaskDefinition" },
+          "DeploymentConfiguration" : {
+            "MaximumPercent" : 200,
+            "MinimumHealthyPercent" : 50
+          },
+          "PlacementStrategies" : [{
+            "Field": "memory",
+            "Type": "binpack"
+          }],
+          "HealthCheckGracePeriodSeconds" : 60,
+          "LoadBalancers" : [{
+            "ContainerName" : "dotnet-webapi-api",
+            "ContainerPort" : 5000,
+            "TargetGroupArn" : { "Ref" : "EcsAlbApiTg"}
+          }]
+        }
+      },
+      "ECSApiTaskDefinition" : {
+        "Type" : "AWS::ECS::TaskDefinition",
+        "DependsOn" : "EcsInstance",
+        "Properties" : {
+          "Family": "dotnet-web-api",
+          "ContainerDefinitions": [
+            {
+              "Name": "dotnet-webapi-api",
+              "Image": "nishantk0111/dotnetwebapi-api",
+              "MemoryReservation": 200,
               "PortMappings": [{
                 "HostPort": 0,
                 "Protocol": "tcp",
@@ -174,7 +222,8 @@
               ],
               "InstanceProfileName" : "EcsIamInstanceProfile"
             }
-          },"EcsAlb" : {
+          },
+          "EcsAlb" : {
             "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
             "Properties": {
               "Type" : "application",
@@ -192,7 +241,7 @@
              "Type" : "AWS::ElasticLoadBalancingV2::Listener",
              "Properties" : {
                "DefaultActions" : [{
-                 "TargetGroupArn" : { "Ref" : "EcsAlbTg"},
+                 "TargetGroupArn" : { "Ref" : "EcsAlbCoreTg"},
                  "Type" : "forward"
                }],
                "LoadBalancerArn" : { "Ref" : "EcsAlb"},
@@ -200,13 +249,13 @@
                "Protocol" : "HTTP"
              }
           },
-          "ECSALBListenerRule" : {
+          "ECSALBCorePathListenerRule" : {
             "Type":"AWS::ElasticLoadBalancingV2::ListenerRule",
             "DependsOn":"EcsAlbListener",
             "Properties" : {
               "Actions":[{
                 "Type":"forward",
-                "TargetGroupArn":{ "Ref":"EcsAlbTg"}
+                "TargetGroupArn":{ "Ref":"EcsAlbCoreTg"}
               }],
               "Conditions" :[{
                 "Field" : "path-pattern",
@@ -216,12 +265,51 @@
               "Priority":1
             }
           },
-          "EcsAlbTg" : {
+          "ECSALBApiPathListenerRule" : {
+            "Type":"AWS::ElasticLoadBalancingV2::ListenerRule",
+            "DependsOn":"EcsAlbListener",
+            "Properties" : {
+              "Actions":[{
+                "Type":"forward",
+                "TargetGroupArn":{ "Ref":"EcsAlbApiTg"}
+              }],
+              "Conditions" :[{
+                "Field" : "path-pattern",
+                "Values" : ["/api"]
+              }],
+              "ListenerArn":{ "Ref":"EcsAlbListener"},
+              "Priority":2
+            }
+          },
+          "EcsAlbCoreTg" : {
             "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
             "Properties" : {
-              "Name" : "EcsAlb-Tg",
+              "Name" : "EcsAlb-CoreTg",
               "HealthCheckProtocol":"HTTP",
               "HealthCheckPath":"/core",
+              "HealthyThresholdCount":3,
+              "UnhealthyThresholdCount":2,
+              "HealthCheckTimeoutSeconds":5,
+              "HealthCheckIntervalSeconds":10,
+              "Matcher" : {
+                "HttpCode" : "200"
+              },
+              "Port" : 80,
+              "TargetType" : "instance",
+              "VpcId" : "vpc-b6c28bdf",
+              "Protocol" : "HTTP",
+              "Tags" : [{
+                "Key" : "Name",
+                "Value" : "EcsAlb-Tg"
+              }]
+            }
+          },
+          "EcsAlbApiTg" : {
+            "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties" : {
+              "Name" : "EcsAlb-ApiTg",
+              "HealthCheckProtocol":"HTTP",
+              "HealthCheckPath":"/api",
               "HealthyThresholdCount":3,
               "UnhealthyThresholdCount":2,
               "HealthCheckTimeoutSeconds":5,
