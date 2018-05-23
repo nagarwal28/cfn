@@ -12,7 +12,21 @@
         "KeyName": "ecs-cfn",
         "InstanceMonitoring" : false,
         "SecurityGroups": [ {"Ref": "EcsInstanceSg"} ],
-        "UserData" : ""
+        "UserData" : {
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "echo ECS_CLUSTER=",
+                {
+                  "Ref":"DotnetECSCluster"
+                },
+                " >> /etc/ecs/ecs.config\n"
+              ]
+            ]
+          }
+        }
       }
     },
     "ECSAsg" : {

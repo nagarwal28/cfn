@@ -8,42 +8,52 @@
         "ClusterName" : "dotnet-cluster"
       }
     },
-    "EcsInstance" : {
-      "Type" : "AWS::EC2::Instance",
-      "DependsOn": "DotnetECSCluster",
+    "ECSLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties" : {
-        "ImageId" : "ami-72edc81d",
-        "KeyName" : "ecs",
-        "InstanceType" : "t2.micro",
-        "IamInstanceProfile" : {
-          "Ref" : "EcsIamInstanceProfile"
-        },
-        "SecurityGroups": [{
-          "Ref": "EcsInstanceSg"
-          }],
-          "UserData":{
-            "Fn::Base64":{
-              "Fn::Join":[
-                "",
-                [
-                  "#!/bin/bash -xe\n",
-                  "echo ECS_CLUSTER=",
-                  {
-                    "Ref":"DotnetECSCluster"
-                  },
-                  " >> /etc/ecs/ecs.config\n"
-                ]
+        "AssociatePublicIpAddress": true,
+        "IamInstanceProfile": { "Ref": "EcsIamInstanceProfile" },
+        "ImageId": "ami-72edc81d",
+        "InstanceType": "t2.micro",
+        "KeyName": "ecs-cfn",
+        "InstanceMonitoring" : false,
+        "SecurityGroups": [ {"Ref": "EcsInstanceSg"} ],
+        "UserData" : {
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "echo ECS_CLUSTER=",
+                {
+                  "Ref":"DotnetECSCluster"
+                },
+                " >> /etc/ecs/ecs.config\n"
               ]
-            }
-          },
-          "Tags" : [
-            {
-              "Key" : "Name",
-              "Value" : "ECSClusterInstance"
-            }
-          ]
+            ]
+          }
         }
-      },
+      }
+    },
+    "ECSAsg" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AutoScalingGroupName" : "ECS-ASG",
+        "VPCZoneIdentifier" : ["subnet-28eebb41"],
+        "DesiredCapacity" : "1",
+        "MaxSize"  : "2",
+        "MinSize" : "1",
+        "HealthCheckType" : "EC2",
+        "LaunchConfigurationName" : {"Ref": "ECSLaunchConfig"},
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "ECS-Asg",
+            "PropagateAtLaunch" : true
+          }
+        ]
+      }
+    },
       "ECSCoreService" :{
         "Type" : "AWS::ECS::Service",
         "DependsOn" : ["ECSCoreTaskDefinition","EcsAlb"],
@@ -71,7 +81,6 @@
       },
       "ECSCoreTaskDefinition" : {
         "Type" : "AWS::ECS::TaskDefinition",
-        "DependsOn" : "EcsInstance",
         "Properties" : {
           "Family": "dotnet-webcoreapi",
           "ContainerDefinitions": [
@@ -119,7 +128,7 @@
       },
       "ECSApiTaskDefinition" : {
         "Type" : "AWS::ECS::TaskDefinition",
-        "DependsOn" : "EcsInstance",
+        "DependsOn" : "ECSAsg",
         "Properties" : {
           "Family": "dotnet-web-api",
           "ContainerDefinitions": [
@@ -157,6 +166,7 @@
               "ToPort": "61000",
               "CidrIp": "0.0.0.0/0"
               }],
+              "VpcId" : "vpc-b6c28bdf",
               "Tags" : [
                 {
                   "Key" : "Name",
