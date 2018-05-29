@@ -1,0 +1,234 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "A VPC Trainee Project",
+  "Resources" : {
+    "TraineeVPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : "10.2.0.0/16",
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          {
+              "Key" : "Name",
+              "Value" : "Trainee_VPC"
+          }
+        ]
+      }
+    },
+    "TraineePublicSubnet_1" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn" : [ "TraineePublicRT", "TraineeVPC" ],
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "CidrBlock" : "10.2.1.0/24",
+        "AvailabilityZone" : "ap-south-1a",
+        "MapPublicIpOnLaunch" : "true",
+        "Tags" : [
+          {
+              "Key" : "Name",
+              "Value" : "Trainee_PublicSubnet"
+          }
+        ]
+      }
+    },
+    "TraineePublicIGW_1" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "Trainee_PublicIGW"
+          }
+        ]
+      }
+    },
+    "TraineePublicIGW_1_Attachment" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
+      "DependsOn" : [ "TraineePublicIGW", "TraineeVPC" ],
+      "Properties" : {
+        "InternetGatewayId" : { "Ref" : "TraineePublicIGW" },
+        "VpcId" : { "Ref" : "TraineeVPC" }
+      }
+    },
+    "TraineePublicRT_1" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "Trainee_PublicRT"
+          }
+        ]
+      }
+    },
+    "TraineePublicRoute_1" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : [ "TraineePublicIGW", "TraineePublicIGW" ],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "TraineePublicRT" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "TraineePublicIGW" }
+      }
+    },
+    "TraineePublicRT_1_Association": {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn" : [ "TraineePublicRT", "TraineePublicSubnet"],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "TraineePublicRT" },
+        "SubnetId" : { "Ref" : "TraineePublicSubnet" }
+      }
+    },
+    "TraineePublic_1_NACL" : {
+      "Type" : "AWS::EC2::NetworkAcl",
+      "DependsOn" : "TraineeVPC",
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "Trainee_PublicNACL"
+          }
+        ]
+      }
+    },
+    "TraineePublicNACLInboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePublicNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePublicNACL" },
+          "RuleNumber" : "100",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "false",
+          "CidrBlock" : "0.0.0.0/0"
+        }
+    },
+    "TraineePublicNACLOutboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePublicNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePublicNACL" },
+          "RuleNumber" : "100",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "true",
+          "CidrBlock" : "0.0.0.0/0"
+      }
+    },
+    "TraineePublicSubnetNACLAssociation" :  {
+      "Type" : "AWS::EC2::SubnetNetworkAclAssociation",
+      "DependsOn" : [ "TraineePublicSubnet", "TraineePublicNACL" ],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "TraineePublicSubnet" },
+        "NetworkAclId" : { "Ref" : "TraineePublicNACL" }
+      }
+    },
+    "TraineePrivateSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "DependsOn" : [ "TraineePrivateRT", "TraineeVPC" ],
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "CidrBlock" : "10.2.2.0/24",
+        "AvailabilityZone" : "ap-south-1b",
+        "Tags" : [
+          {
+              "Key" : "Name",
+              "Value" : "Trainee_PrivateSubnet"
+          }
+        ]
+      }
+    },
+    "TraineePrivateRT" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "DependsOn" : "TraineeVPC",
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "Trainee_PrivateRT"
+          }
+        ]
+      }
+    },
+    "TraineePrivateRTAssociation": {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "DependsOn" : [ "TraineePrivateRT", "TraineePrivateSubnet"],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "TraineePrivateRT" },
+        "SubnetId" : { "Ref" : "TraineePrivateSubnet" }
+      }
+    },
+    "TraineePrivateNACL" : {
+      "Type" : "AWS::EC2::NetworkAcl",
+      "DependsOn" : "TraineeVPC",
+      "Properties" : {
+        "VpcId" : { "Ref" : "TraineeVPC" },
+        "Tags" : [
+          {
+            "Key" : "Name",
+            "Value" : "Trainee_PrivateNACL"
+          }
+        ]
+      }
+    },
+    "TraineePrivateNACLPSInboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePrivateNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePrivateNACL" },
+          "RuleNumber" : "100",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "false",
+          "CidrBlock" : "10.2.1.0/24"
+        }
+    },
+    "TraineePrivateNACLPSOutboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePrivateNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePrivateNACL" },
+          "RuleNumber" : "100",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "true",
+          "CidrBlock" : "10.2.1.0/24"
+      }
+    },
+    "TraineePrivateNACLDSInboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePrivateNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePrivateNACL" },
+          "RuleNumber" : "200",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "false",
+          "CidrBlock" : "10.2.3.0/24"
+        }
+    },
+    "TraineePrivateNACLDSOutboundEntry" : {
+      "Type" : "AWS::EC2::NetworkAclEntry",
+      "DependsOn" : "TraineePrivateNACL",
+      "Properties" : {
+          "NetworkAclId" : { "Ref" : "TraineePrivateNACL" },
+          "RuleNumber" : "200",
+          "Protocol" : "-1",
+          "RuleAction" : "allow",
+          "Egress" : "true",
+          "CidrBlock" : "10.2.3.0/24"
+      }
+    },
+    "TraineePrivateSubnetNACLAssociation" :  {
+      "Type" : "AWS::EC2::SubnetNetworkAclAssociation",
+      "DependsOn" : [ "TraineePrivateSubnet", "TraineePrivateNACL" ],
+      "Properties" : {
+        "SubnetId" : { "Ref" : "TraineePrivateSubnet" },
+        "NetworkAclId" : { "Ref" : "TraineePrivateNACL" }
+      }
+    }
+  }
+}
